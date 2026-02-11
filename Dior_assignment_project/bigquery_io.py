@@ -1,31 +1,59 @@
-import os
 import pandas as pd
 from google.cloud import bigquery
+import os
 
-class BigQueryManager:
-    def __init__(self, project_id="asli-api"):
-        """
-        Initialise le client BigQuery. 
-        Docker se chargera de pointer vers le fichier JSON via GOOGLE_APPLICATION_CREDENTIALS.
-        """
-        self.project_id = project_id
-        try:
-            self.client = bigquery.Client(project=self.project_id)
-            print(f"✅ Connecté au projet BigQuery : {self.project_id}")
-        except Exception as e:
-            print(f"❌ Erreur de connexion : {e}")
+class BigQueryClient:
+    def __init__(self, project_id=None, credentials_path=None):
+        if credentials_path:
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+        
+        self.project_id = project_id or os.getenv("GOOGLE_CLOUD_PROJECT")
+        self.client = bigquery.Client(project=self.project_id)
 
-    def run_query(self, query):
-        """Exécute une requête SQL et retourne un DataFrame."""
+    def query_to_dataframe(self, query):
+        """
+        Runs a SQL query and returns the results as a Pandas DataFrame.
+        """
         try:
-            return self.client.query(query).to_dataframe()
+            print(f"Running query on project: {self.project_id}...")
+            df = self.client.query(query).to_dataframe()
+            print("Query complete!")
+            return df
         except Exception as e:
-            print(f"❌ Erreur lors de l'exécution de la requête : {e}")
+            print(f"An error occurred: {e}")
             return pd.DataFrame()
 
-    def save_to_bq(self, df, table_id):
-        """Sauvegarde un DataFrame directement dans BigQuery."""
-        job_config = bigquery.LoadJobConfig(write_disposition="WRITE_APPEND")
-        job = self.client.load_table_from_dataframe(df, table_id, job_config=job_config)
-        job.result()
-        print(f"✅ Données envoyées vers {table_id}")
+    def upload_dataframe(self, df, table_id, if_exists="append"):
+        """
+        Uploads a Pandas DataFrame to a BigQuery table.
+        """
+        try:
+            job_config = bigquery.LoadJobConfig(
+                write_disposition="WRITE_APPEND" if if_exists == "append" else "WRITE_TRUNCATE",
+            )
+            job = self.client.load_table_from_dataframe(df, table_id, job_config=job_config)
+            job.result()  # Wait for the job to complete
+            print(f"Successfully uploaded {len(df)} rows to {table_id}.")
+            return True
+        except Exception as e:
+            print(f"An error occurred during upload: {e}")
+            return False
+
+    def get_dior_data(self, dataset_id, table_id, limit=50):
+        query = f"""
+            SELECT
+                url,
+                title,
+                COUNT(1) as num_occurrences,
+                MAX(scrape_date) as last_scraped
+            FROM
+                `{self.project_id}.{dataset_id}.{table_id}`
+            WHERE
+                LENGTH(content) > 100
+            GROUP BY
+                url, title
+            ORDER BY
+                num_occurrences DESC
+            LIMIT {limit};
+        """
+        return self.query_to_dataframe(query)
