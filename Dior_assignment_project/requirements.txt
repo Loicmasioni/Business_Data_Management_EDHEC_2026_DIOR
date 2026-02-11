@@ -1,7 +1,0 @@
-google-cloud-bigquery
-pandas
-pyarrow
-playwright
-beautifulsoup4
-nest_asyncio
-jupyterlab

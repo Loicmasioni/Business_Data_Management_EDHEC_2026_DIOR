@@ -1,0 +1,10 @@
+playwright
+beautifulsoup4
+pandas
+google-cloud-bigquery
+fastapi
+uvicorn
+nest-asyncio
+google-auth
+pytest
+httpx
