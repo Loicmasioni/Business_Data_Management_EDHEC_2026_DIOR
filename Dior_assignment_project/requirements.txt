@@ -5,3 +5,5 @@ playwright
 beautifulsoup4
 nest_asyncio
 jupyterlab
+transformers
+torch
