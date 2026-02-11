@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dior-data-management"
+version = "0.1.0"
+description = "Modular project for scraping Dior and Vestiaire Collective data and managing it in BigQuery."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "playwright",
+    "beautifulsoup4",
+    "pandas",
+    "google-cloud-bigquery",
+    "fastapi",
+    "uvicorn",
+    "nest-asyncio",
+    "google-auth",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "httpx",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "api*"]
