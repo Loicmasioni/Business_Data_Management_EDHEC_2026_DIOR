@@ -10,7 +10,7 @@ This repository is our end-to-end data pipeline designed to monitor, analyze, an
 ### Core Research Question
 **Which Dior products behave like long-term value-retaining assets on the secondary market, and what characteristics explain this behavior?**
 
-We are not analyzing resale for curiosity—we are using **resale prices as a signal of perceived value, scarcity, and pricing efficiency**. This project treats luxury goods as financial instruments, measuring their ability to retain or appreciate in value post-purchase.
+We are not analyzing resale for curiosity we are using **resale prices as a signal of perceived value, scarcity, and pricing efficiency**. This project treats luxury goods as financial instruments, measuring their ability to retain or appreciate in value post-purchase.
 
 ### Why This Matters for Dior
 
