@@ -5,6 +5,40 @@ This repository hosts a sophisticated end-to-end data pipeline designed to monit
 
 ---
 
+## 🎯 Project Intent
+
+### Core Research Question
+**Which Dior products behave like long-term value-retaining assets on the secondary market, and what characteristics explain this behavior?**
+
+We are not analyzing resale for curiosity—we are using **resale prices as a signal of perceived value, scarcity, and pricing efficiency**. This project treats luxury goods as financial instruments, measuring their ability to retain or appreciate in value post-purchase.
+
+### Why This Matters for Dior
+
+This analysis provides actionable strategic intelligence:
+
+| Strategic Goal | How This Project Helps |
+|:---|:---|
+| **Identify Underpriced Products** | Products reselling near or above retail indicate unrealized pricing power. Dior can adjust pricing strategies accordingly. |
+| **Detect "Icon" Candidates Early** | Strong resale retention often precedes long-term brand icons (e.g., Lady Dior, Saddle Bag). Early detection enables focused marketing investment. |
+| **Evaluate Scarcity Strategy** | Products no longer available at retail but strong on resale indicate effective scarcity management and brand desirability. |
+| **Protect Brand Equity** | Weak resale performance can flag overexposure, poor quality perception, or market saturation—allowing corrective action. |
+
+### The RVR Metric
+
+**Resale Value Retention (RVR)** is our proprietary metric:
+
+$$
+\text{RVR} = \frac{\text{Median Resale Price (EUR)}}{\text{Retail Price (EUR)}} \times 100
+$$
+
+**Classification:**
+- **RVR ≥ 100%** → Investment-like (appreciating asset)
+- **90% ≤ RVR < 100%** → Value-retaining (minimal depreciation)
+- **RVR < 90%** → Depreciating (typical consumer good behavior)
+
+This metric allows Dior to benchmark products against financial assets rather than traditional consumer goods.
+
+
 ## 🏗 System Architecture
 
 The project follows a modular **ELT (Extract, Load, Transform)** architecture, containerized for scalability and deployed with a FastAPI management layer.
@@ -74,6 +108,43 @@ graph TB
 
 6. **Multi-Channel Access**: Data is accessible via FastAPI endpoints, Jupyter notebooks for deep analysis, and Power BI for executive dashboards.
 
+
+---
+
+## 📊 Data Sources & Methodology
+
+### Data Sources
+
+| Source | Role | Justification |
+|:---|:---|:---|
+| **Dior Official Website** | Retail ground truth | Establishes current pricing, availability, and product catalog. |
+| **Vestiaire Collective** | Secondary-market valuation | EU-focused resale platform with authenticated luxury goods. |
+| **Rebag** | Secondary-market valuation (US) | US-focused resale platform for cross-market comparison. |
+| **EDHEC BigQuery Dataset** | Historical retail context | Provides lifecycle data (price changes, discontinuation dates). |
+| **FX API** | Currency normalization | Ensures all prices are comparable in EUR. |
+
+### Matching Logic
+
+**Challenge:** Retail and resale platforms use different naming conventions (e.g., "Sac Lady Dior Medium" vs "Lady Dior Bag").
+
+**Solution:** Our **Product Matching Engine** uses:
+1. **Category Harmonization**: Maps "Sacs" → "Bags", "Bijoux" → "Jewelry"
+2. **Text Normalization**: Removes brand names, colors, sizes, and special characters
+3. **Fuzzy Similarity**: Matches products with ≥70% name similarity
+4. **Price Validation**: Resale price must be within ±40% of retail to avoid false matches
+
+**Aggregation:** Multiple resale listings are aggregated using the **median price** to reduce outlier influence.
+
+### Key Assumptions
+
+> [!IMPORTANT]
+> **Scope Limitation**: This project focuses on **Bags** category to ensure depth over breadth.
+
+> [!NOTE]
+> **No Perfect SKU Matching**: Resale platforms rarely include manufacturer SKUs. We rely on intelligent text matching instead.
+
+> [!NOTE]
+> **Liquidity Signal**: We limit to ~10 resale listings per product. The goal is to detect value signals, not exhaustive market coverage.
 
 ---
 
