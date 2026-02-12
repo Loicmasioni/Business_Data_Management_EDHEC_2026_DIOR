@@ -152,16 +152,34 @@ graph TB
 
 The project is organized to ensure clear separation of concerns, facilitating both local development and containerized deployment.
 
-| Directory / File | Description |
-| :--- | :--- |
-| `api/` | FastAPI server implementation, including background tasks and schedulers. |
-| `src/scrapers/` | Playwright & BeautifulSoup based crawlers for luxury e-commerce. |
-| `src/analytics/` | Text normalization, category harmonization, and fuzzy matching algorithms. |
-| `src/database/` | BigQuery managers and schema-aware data injection logic. |
-| `src/automation/` | Cron-like scheduling for daily pipeline execution. |
-| `docker/` | Dockerfile and Compose configurations for consistent environments. |
-| `run_pipeline.py` | The main entry point for the sequential analytical pipeline. |
-| `Makefile` | Orchestration tool for setup, testing, and execution. |
+```
+Business_Data_Management_EDHEC_2026_DIOR/
+├── api/                    # FastAPI service
+│   ├── __init__.py
+│   └── main.py
+├── docker/                 # Containerization
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── src/                    # Core modules
+│   ├── analytics/          # Normalization & matching
+│   ├── automation/         # Scheduling
+│   ├── database/           # BigQuery integration
+│   └── scrapers/           # Dior, Rebag, Vestiaire
+├── tests/                  # Test suite
+│   ├── README.md
+│   ├── test_main.py
+│   └── test_scrapers.py
+├── .env.example            # Environment template
+├── .gitignore              # Comprehensive exclusions
+├── Dior_Data_Management.ipynb  # Analysis notebook
+├── Makefile                # Automation commands
+├── README.md               # Complete documentation
+├── pyproject.toml          # Package configuration
+├── requirements.txt        # Dependencies
+├── run_pipeline.py         # Main orchestrator
+├── setup.py                # Package setup
+└── setup.sh                # Setup script
+```
 
 ---
 
