@@ -1,7 +1,7 @@
 # 💎 Dior Value Retention & Market Intelligence System
 ### *EDHEC Business Data Management Project - 2026*
 
-This repository hosts a sophisticated end-to-end data pipeline designed to monitor, analyze, and predict the investment value of Dior luxury goods. By integrating retail data from Dior with secondary market listings (Rebag, Vestiaire Collective), the system calculates a proprietary **Resale Value Retention (RVR)** metric.
+This repository is our end-to-end data pipeline designed to monitor, analyze, and predict the investment value of Dior luxury goods. By integrating retail data from Dior with secondary market listings (Rebag, Vestiaire Collective), the system calculates a proprietary **Resale Value Retention (RVR)** metric.
 
 ---
 
