@@ -263,3 +263,33 @@ Data is injected into a unified BigQuery table, allowing for:
 
 ## 🎓 Organization
 This project was developed for the **EDHEC Business Data Management (2026)** course. It represents a professional-grade implementation of modern data engineering practices, combining web automation, cloud databases, and business intelligence.
+
+---
+
+## 🔌 API Reference
+
+The FastAPI service exposes several endpoints for data retrieval and analysis.
+
+### Analytics Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/analytics/investment-hotspots` | Ranking of products with highest resale value retention (using official Dior data only). |
+| `GET` | `/analytics/brand-premium` | Calculates 'Dior Premium' (or depreciation %) by category. |
+| `GET` | `/analytics/market-depth` | Volume of listings per category across all sources (Liquidity signal). |
+| `GET` | `/analytics/scarcity-monitor` | Identifies 'Hidden Gems' (High Price + Low Volume). |
+
+### Utility Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/tools/exchange-rate` | Real-time FX conversion (USD/EUR) via external API. |
+| `GET` | `/health` | Cloud readiness check. |
+
+### Scraper Triggers
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/scrape/dior` | Triggers background scraping of Dior official site. |
+| `POST` | `/scrape/vestiaire` | Triggers Vestiaire scraping using known Dior products as seeds. |
+| `POST` | `/pipeline/run` | Executes the full End-to-End ETL pipeline. |
