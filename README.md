@@ -137,9 +137,6 @@ graph TB
 
 ### Key Assumptions
 
-> [!IMPORTANT]
-> **Scope Limitation**: This project focuses on **Bags** category to ensure depth over breadth.
-
 > [!NOTE]
 > **No Perfect SKU Matching**: Resale platforms rarely include manufacturer SKUs. We rely on intelligent text matching instead.
 
