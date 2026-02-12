@@ -10,6 +10,7 @@ from src.scrapers.rebag import scrape_rebag_dior_plp
 from src.database.bigquery import BigQueryManager
 from src.analytics.normalization import DataNormalizer
 from src.analytics.matching import ValueAnalyzer
+from src.analytics.currency import normalize_prices_to_eur
 
 import nest_asyncio
 
@@ -55,7 +56,6 @@ async def run_full_analytical_pipeline():
     # Process Retail
     df_retail['category'] = df_retail['category'].apply(normalizer.harmonize_category)
     df_retail['product_name_clean'] = df_retail['product_name'].apply(normalizer.clean_text)
-    df_retail['retail_price_num'] = df_retail['retail_price'].apply(normalizer.extract_numeric_price)
     df_retail['Source'] = 'Dior'
     
     # Process Resale
@@ -66,14 +66,21 @@ async def run_full_analytical_pipeline():
         df = df.rename(columns={k: v for k, v in mapping.items() if k in df.columns})
         
         df = df.copy()
+        if 'currency' not in df.columns:
+            df['currency'] = 'USD' if source == 'Rebag' else 'EUR'
         df['category'] = df['product_name'].apply(normalizer.harmonize_category)
         df['product_name_clean'] = df['product_name'].apply(normalizer.clean_text)
-        df['resale_price_num'] = df['resale_price'].apply(normalizer.extract_numeric_price)
         df['Source'] = source
         return df
 
     df_resale_1 = prepare_resale(df_resale_1, 'Rebag')
     df_resale_2 = prepare_resale(df_resale_2, 'Vestiaire')
+    df_retail = await normalize_prices_to_eur(df_retail, price_col="retail_price", currency_col="currency")
+    df_retail['retail_price_num'] = df_retail['retail_price_eur']
+    df_resale_1 = await normalize_prices_to_eur(df_resale_1, price_col="resale_price", currency_col="currency")
+    df_resale_1['resale_price_num'] = df_resale_1['retail_price_eur']
+    df_resale_2 = await normalize_prices_to_eur(df_resale_2, price_col="resale_price", currency_col="currency")
+    df_resale_2['resale_price_num'] = df_resale_2['retail_price_eur']
     
     df_all_resale = pd.concat([df_resale_1, df_resale_2], ignore_index=True)
 

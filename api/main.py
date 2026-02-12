@@ -13,6 +13,7 @@ from src.scrapers.dior import DiorScraper
 from src.scrapers.vestiaire import VestiaireScraper
 from src.scrapers.rebag import scrape_rebag_dior_plp
 from src.database.bigquery import BigQueryClient
+from src.analytics.currency import normalize_prices_to_eur
 
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -42,6 +43,8 @@ def standardize_resale_df(df, source_name):
     }
     df = df.rename(columns=mapping)
     if 'brand' not in df.columns: df['brand'] = 'Dior'
+    if 'currency' not in df.columns:
+        df['currency'] = 'USD' if source_name == "Rebag" else 'EUR'
     df['scrape_date'] = datetime.now().strftime("%Y-%m-%d")
     return df
 
@@ -87,8 +90,8 @@ async def get_brand_premium():
     bq = BigQueryClient()
     query = """
         SELECT category, 
-        AVG(CASE WHEN Source = 'Dior' THEN retail_price END) as avg_retail,
-        AVG(CASE WHEN Source != 'Dior' THEN retail_price END) as avg_resale
+        AVG(CASE WHEN Source = 'Dior' THEN retail_price_eur END) as avg_retail,
+        AVG(CASE WHEN Source != 'Dior' THEN retail_price_eur END) as avg_resale
         FROM `asli-api.data_management_projet.dior_data_final`
         GROUP BY category
     """
@@ -114,6 +117,9 @@ async def main_pipeline():
         data = await dior_tool.scrape_category(url, cat)
         if data: all_dior.extend(data)
     df_dior = pd.DataFrame(all_dior)
+    if not df_dior.empty:
+        df_dior["Source"] = "Dior"
+        df_dior["Condition"] = "Brand New"
 
     # B. Rebag
     rebag_raw = await scrape_rebag_dior_plp(start_page=1, end_page=40)
@@ -132,6 +138,9 @@ async def main_pipeline():
     # Standardize & NLP
     df_rebag = standardize_resale_df(df_rebag, 'Rebag')
     df_vest = standardize_resale_df(df_vest, 'Vestiaire')
+    df_dior = await normalize_prices_to_eur(df_dior, price_col="retail_price", currency_col="currency")
+    df_rebag = await normalize_prices_to_eur(df_rebag, price_col="retail_price", currency_col="currency")
+    df_vest = await normalize_prices_to_eur(df_vest, price_col="retail_price", currency_col="currency")
 
     classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
     def apply_nlp(df):
@@ -146,7 +155,20 @@ async def main_pipeline():
     df_vest = apply_nlp(df_vest)
 
     
-    target_order = ['retail_product_id', 'product_name', 'category', 'retail_price', 'currency', 'product_url', 'scrape_date', 'Condition', 'Source']
+    target_order = [
+        'retail_product_id',
+        'product_name',
+        'category',
+        'retail_price',
+        'retail_price_num',
+        'fx_rate_to_eur',
+        'retail_price_eur',
+        'currency',
+        'product_url',
+        'scrape_date',
+        'Condition',
+        'Source',
+    ]
     def prep(df):
         for c in target_order: 
             if c not in df.columns: df[c] = None
