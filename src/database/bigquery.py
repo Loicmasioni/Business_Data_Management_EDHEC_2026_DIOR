@@ -4,8 +4,13 @@ import os
 
 class BigQueryClient:
     def __init__(self, project_id=None, credentials_path=None):
-        if credentials_path:
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+        # Prefer provided credentials_path, otherwise check environment
+        cred_file = credentials_path or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if cred_file:
+            # Ensure it's an absolute path if it exists locally
+            if not os.path.isabs(cred_file) and os.path.exists(cred_file):
+                cred_file = os.path.abspath(cred_file)
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cred_file
         
         self.project_id = project_id or os.getenv("GOOGLE_CLOUD_PROJECT")
         self.client = bigquery.Client(project=self.project_id)
@@ -53,21 +58,46 @@ class BigQueryClient:
             print(f"An error occurred during upload: {e}")
             return False
 
+    def get_recent_data(self, dataset_id, table_id, limit=50):
+        """
+        Generic method to fetch recent data from a table.
+        """
+        query = f"""
+            SELECT *
+            FROM `{self.project_id}.{dataset_id}.{table_id}`
+            ORDER BY scrape_date DESC
+            LIMIT {limit}
+        """
+        return self.query_to_dataframe(query)
+
     def get_dior_data(self, dataset_id, table_id, limit=50):
+        """
+        Fetches Dior specific data using the current scraper schema.
+        """
         query = f"""
             SELECT
-                url,
-                title,
-                COUNT(1) as num_occurrences,
-                MAX(scrape_date) as last_scraped
+                product_name,
+                retail_product_id,
+                retail_price,
+                category,
+                scrape_date,
+                product_url
             FROM
                 `{self.project_id}.{dataset_id}.{table_id}`
-            WHERE
-                LENGTH(content) > 100
-            GROUP BY
-                url, title
             ORDER BY
-                num_occurrences DESC
+                scrape_date DESC
             LIMIT {limit};
         """
         return self.query_to_dataframe(query)
+
+    def save_to_bq(self, df, table_id):
+        """
+        Alias for upload_dataframe to match test_main.py.
+        """
+        return self.upload_dataframe(df, table_id)
+
+class BigQueryManager(BigQueryClient):
+    """
+    Alias class to match test_main.py import.
+    """
+    pass

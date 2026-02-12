@@ -87,3 +87,7 @@ class DiorScraper:
             all_results.extend(data)
             print(f"[Done] Collected {len(data)} items from {cat_name}.")
         return all_results
+
+async def scrape_all_dior_categories(categories_dict):
+    scraper = DiorScraper()
+    return await scraper.scrape_all(categories_dict)
