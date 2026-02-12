@@ -1,0 +1,17 @@
+# Credentials and Keys
+*.json
+
+# Python Environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Project Specific
+.vscode/
+.idea/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
