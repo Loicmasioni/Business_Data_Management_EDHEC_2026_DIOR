@@ -32,7 +32,14 @@ vestiaire_scraper = VestiaireScraper(headless=True)
 
 @app.get("/")
 async def root():
-    return {"message": "Dior Data Management API is running"}
+    return {"message": "Dior Data Management API is running", "docs": "/docs"}
+
+@app.get("/health")
+async def health_check():
+    """
+    Health check endpoint for cloud deployments (e.g., GKE, Cloud Run).
+    """
+    return {"status": "healthy"}
 
 @app.post("/scrape/dior")
 async def trigger_dior_scrape(background_tasks: BackgroundTasks, categories: dict = None):
@@ -109,14 +116,122 @@ async def get_investment_hotspots(limit: int = 10):
     # Logic: Products where we have both Dior and secondary markings
     # (This assumes the analytical mart logic has run and populated 'price' for matched items)
     query = f"""
-        SELECT product_name, category, retail_price, price as resale_price, Source
+        SELECT product_name, category, retail_price, price as resale_price, Source, scrape_date
         FROM `{full_path}`
         WHERE Source != 'Dior' AND price IS NOT NULL
-        ORDER BY price DESC
+        ORDER BY scrape_date DESC, price DESC
         LIMIT {limit}
     """
     df = bq.query_to_dataframe(query)
-    # Handle NaN for JSON compliance
+    return clean_for_json(df).to_dict(orient="records")
+
+@app.get("/tools/exchange-rate")
+async def get_exchange_rate(base: str = "USD", target: str = "EUR"):
+    """
+    Fetches the latest exchange rate from ExchangeRate-API.
+    """
+    import httpx
+    api_key = os.getenv("EXCHANGE_RATE_API_KEY")
+    if not api_key:
+        return {"error": "API Key not configured"}
+        
+    url = f"https://v6.exchangerate-api.com/v6/{api_key}/latest/{base}"
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url)
+            data = response.json()
+            if response.status_code != 200:
+                 return {"error": "External API error", "details": data}
+            
+            rate = data.get("conversion_rates", {}).get(target)
+            if not rate:
+                return {"error": f"Target currency {target} not found"}
+                
+            return {
+                "base": base,
+                "target": target,
+                "rate": rate,
+                "provider": "ExchangeRate-API"
+            }
+        except Exception as e:
+             return {"error": str(e)}
+
+@app.get("/analytics/brand-premium")
+async def get_brand_premium():
+    """
+    Calculates the 'Dior Premium' (or Depreciation) by Category.
+    Compares average Retail Price vs. Average Resale Price.
+    """
+    bq = BigQueryClient()
+    table = os.getenv("DIOR_TABLE_ID", "dior_data")
+    dataset = os.getenv("BIGQUERY_DATASET_ID", "data_management_projet")
+    full_path = f"{bq.project_id}.{dataset}.{table}"
+
+    query = f"""
+        SELECT 
+            category,
+            AVG(CASE WHEN Source = 'Dior' THEN retail_price END) as avg_retail,
+            AVG(CASE WHEN Source != 'Dior' THEN price END) as avg_resale,
+            (AVG(CASE WHEN Source != 'Dior' THEN price END) - AVG(CASE WHEN Source = 'Dior' THEN retail_price END)) / AVG(CASE WHEN Source = 'Dior' THEN retail_price END) * 100 as premium_pct
+        FROM `{full_path}`
+        WHERE price IS NOT NULL OR retail_price IS NOT NULL
+        GROUP BY category
+        HAVING avg_retail IS NOT NULL AND avg_resale IS NOT NULL
+        ORDER BY premium_pct DESC
+    """
+    df = bq.query_to_dataframe(query)
+    return clean_for_json(df).to_dict(orient="records")
+
+@app.get("/analytics/market-depth")
+async def get_market_depth():
+    """
+    Returns the volume of listings per category across all sources.
+    Useful for understanding market liquidity and saturation.
+    """
+    bq = BigQueryClient()
+    table = os.getenv("DIOR_TABLE_ID", "dior_data")
+    dataset = os.getenv("BIGQUERY_DATASET_ID", "data_management_projet")
+    full_path = f"{bq.project_id}.{dataset}.{table}"
+
+    query = f"""
+        SELECT 
+            category,
+            Source,
+            COUNT(*) as listing_count,
+            AVG(price) as avg_price
+        FROM `{full_path}`
+        GROUP BY category, Source
+        ORDER BY listing_count DESC
+    """
+    df = bq.query_to_dataframe(query)
+    return clean_for_json(df).to_dict(orient="records")
+
+@app.get("/analytics/scarcity-monitor")
+async def get_scarcity_monitor(min_price: int = 1000, max_listings: int = 5):
+    """
+    Identifies 'Hidden Gems': High value items with low market availability.
+    Signals potential scarcity value.
+    """
+    bq = BigQueryClient()
+    table = os.getenv("DIOR_TABLE_ID", "dior_data")
+    dataset = os.getenv("BIGQUERY_DATASET_ID", "data_management_projet")
+    full_path = f"{bq.project_id}.{dataset}.{table}"
+
+    query = f"""
+        SELECT 
+            product_name,
+            category,
+            AVG(price) as avg_resale_price,
+            COUNT(*) as market_volume
+        FROM `{full_path}`
+        WHERE Source != 'Dior' AND price >= {min_price}
+        GROUP BY product_name, category
+        HAVING market_volume <= {max_listings}
+        ORDER BY avg_resale_price DESC
+        LIMIT 20
+    """
+    df = bq.query_to_dataframe(query)
     return clean_for_json(df).to_dict(orient="records")
 
 @app.post("/scrape/vestiaire")
