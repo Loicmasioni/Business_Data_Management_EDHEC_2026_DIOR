@@ -10,49 +10,70 @@ This repository hosts a sophisticated end-to-end data pipeline designed to monit
 The project follows a modular **ELT (Extract, Load, Transform)** architecture, containerized for scalability and deployed with a FastAPI management layer.
 
 ```mermaid
-graph TD
-    subgraph "External Sources"
-        Dior["Dior Official (Retail)"]
-        Rebag["Rebag (Resale)"]
-        Vestiaire["Vestiaire Collective (Resale)"]
+graph TB
+    subgraph Sources["🌐 External Data Sources"]
+        Dior["Dior Official<br/>(Retail Prices)"]
+        Rebag["Rebag<br/>(Resale Market)"]
+        Vestiaire["Vestiaire Collective<br/>(Resale Market)"]
     end
 
-    subgraph "Data Acquisition Layer (Scrapers)"
+    subgraph Scrapers["📥 Data Acquisition Layer"]
         DS[Dior Scraper]
         RS[Rebag Scraper]
         VS[Vestiaire Scraper]
     end
 
-    subgraph "Processing & Analytics (Python Core)"
+    subgraph Processing["⚙️ Processing & Analytics"]
         Normalizer[Data Normalizer]
-        Matcher[Fuzzy Matching Logic]
+        Matcher[Product Matching Engine]
         RVR[RVR Calculator]
     end
 
-    subgraph "Storage Layer"
-        BQ[(Google BigQuery)]
+    subgraph Storage["💾 Cloud Storage"]
+        BQ[(Google BigQuery<br/>Unified Data Mart)]
     end
 
-    subgraph "Access Layer"
+    subgraph Access["🔌 Access & Visualization"]
         API[FastAPI Service]
-        Notebook[Analysis Notebook]
+        Notebook[Jupyter Analysis]
+        PowerBI[Power BI Dashboard]
         Scheduler[Daily Automation]
     end
 
-    %% Flow
+    %% Data Flow
     Dior --> DS
     Rebag --> RS
     Vestiaire --> VS
 
-    DS & RS & VS --> Normalizer
+    DS --> Normalizer
+    RS --> Normalizer
+    VS --> Normalizer
+    
     Normalizer --> Matcher
     Matcher --> RVR
     RVR --> BQ
     
     BQ --> API
     BQ --> Notebook
-    Scheduler --> API
+    BQ --> PowerBI
+    
+    Scheduler -.triggers.-> API
 ```
+
+**How the System Works:**
+
+1. **Data Acquisition**: Automated scrapers collect product listings from Dior's official site (retail prices) and secondary markets (Rebag, Vestiaire Collective).
+
+2. **Normalization**: Raw data is cleaned and standardized—product names are harmonized across different languages and platforms (e.g., "Sac" → "Bag").
+
+3. **Product Matching Engine**: Uses intelligent text similarity algorithms to match the same product across retail and resale platforms, even when names differ slightly.
+
+4. **RVR Calculation**: For matched products, we calculate the Resale Value Retention metric to identify which items hold their value best.
+
+5. **Unified Storage**: All processed data flows into Google BigQuery, creating a single source of truth for analytics.
+
+6. **Multi-Channel Access**: Data is accessible via FastAPI endpoints, Jupyter notebooks for deep analysis, and Power BI for executive dashboards.
+
 
 ---
 
