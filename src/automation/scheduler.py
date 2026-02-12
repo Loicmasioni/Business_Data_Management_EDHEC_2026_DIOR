@@ -5,7 +5,7 @@ from datetime import datetime, time, timedelta
 # Avoid circular imports by importing inside the function
 def setup_daily_scheduler(app):
     """
-    Sets up a simple background task to run the pipeline daily.
+    Sets a background task to run the pipeline daily.
     """
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("Scheduler")
@@ -33,12 +33,12 @@ def setup_daily_scheduler(app):
             
             await asyncio.sleep(sleep_seconds)
             
-            logger.info("🚀 Triggering scheduled daily pipeline run...")
+            logger.info("Triggering scheduled daily pipeline run...")
             try:
                 await run_full_analytical_pipeline()
-                logger.info("✅ Scheduled pipeline run complete.")
+                logger.info(" Scheduled pipeline run complete.")
             except Exception as e:
-                logger.error(f"❌ Scheduled pipeline failed: {e}")
+                logger.error(f"Scheduled pipeline failed: {e}")
                 
     # Start the loop in the background
     @app.on_event("startup")
