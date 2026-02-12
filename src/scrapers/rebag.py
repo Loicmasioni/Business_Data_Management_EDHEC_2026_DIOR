@@ -73,8 +73,11 @@ async def scrape_rebag_dior_plp(start_page=1, end_page=6):
         await browser.close()
         return listings
 
-data_resale = asyncio.run(scrape_rebag_dior_plp(start_page=1, end_page=10))
-df_resale_1 = pd.DataFrame(data_resale)
-df_resale_1 = df_resale_1.drop_duplicates(subset=["Lien"])
-print(len(df_resale_1))
-df_resale_1.head()
+
+if __name__ == "__main__":
+    data_resale = asyncio.run(scrape_rebag_dior_plp(start_page=1, end_page=2))
+    
+    df_resale_1 = pd.DataFrame(data_resale)
+    df_resale_1 = df_resale_1.drop_duplicates(subset=["Lien"])
+    print(f"Total Rebag items found: {len(df_resale_1)}")
+    print(df_resale_1.head())

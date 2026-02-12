@@ -26,11 +26,25 @@ class BigQueryClient:
     def upload_dataframe(self, df, table_id, if_exists="append"):
         """
         Uploads a Pandas DataFrame to a BigQuery table.
+        Optimized for appending data with automatic schema expansion.
         """
         try:
-            job_config = bigquery.LoadJobConfig(
-                write_disposition="WRITE_APPEND" if if_exists == "append" else "WRITE_TRUNCATE",
-            )
+            # Determine the write disposition
+            if if_exists == "replace":
+                write_disposition = "WRITE_TRUNCATE"
+                # Schema update options are NOT allowed with WRITE_TRUNCATE
+                job_config = bigquery.LoadJobConfig(
+                    write_disposition=write_disposition
+                )
+            else:
+                write_disposition = "WRITE_APPEND"
+                # ALLOW_FIELD_ADDITION is perfect for appending data when new columns appear
+                job_config = bigquery.LoadJobConfig(
+                    write_disposition=write_disposition,
+                    schema_update_options=[bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION],
+                )
+
+            print(f"Uploading to {table_id} (Mode: {write_disposition})...")
             job = self.client.load_table_from_dataframe(df, table_id, job_config=job_config)
             job.result()  # Wait for the job to complete
             print(f"Successfully uploaded {len(df)} rows to {table_id}.")
