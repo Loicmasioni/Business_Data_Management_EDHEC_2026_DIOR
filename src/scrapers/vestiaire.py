@@ -104,3 +104,10 @@ class VestiaireScraper:
             await asyncio.sleep(1.5)
 
         return all_resale
+
+async def scrape_vestiaire_dior():
+    scraper = VestiaireScraper()
+    # If called without arguments, it might just scrape a general search or return empty
+    # For compatibility with test_main.py which calls it without args:
+    dummy_row = {'product_name': 'Dior Bag', 'retail_product_id': 'general', 'retail_price': 'N/A', 'category': 'Bags'}
+    return await scraper.scrape_product(dummy_row)

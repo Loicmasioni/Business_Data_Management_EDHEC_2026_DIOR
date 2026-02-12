@@ -17,6 +17,12 @@ dependencies = [
     "uvicorn",
     "nest-asyncio",
     "google-auth",
+    "transformers",
+    "torch",
+    "scikit-learn",
+    "tqdm",
+    "python-dotenv",
+    "db-dtypes",
 ]
 
 [project.optional-dependencies]

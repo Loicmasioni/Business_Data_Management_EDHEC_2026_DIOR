@@ -1,9 +1,10 @@
-google-cloud-bigquery
-pandas
-pyarrow
 playwright
 beautifulsoup4
-nest_asyncio
-jupyterlab
-transformers
-torch
+pandas
+google-cloud-bigquery
+fastapi
+uvicorn
+nest-asyncio
+google-auth
+pytest
+httpx
