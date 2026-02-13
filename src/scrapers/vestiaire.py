@@ -75,6 +75,27 @@ class VestiaireScraper:
             
         return results
 
+
+async def scrape_vestiaire_dior(product_names=None, max_items=20, headless=True, max_concurrent=10):
+    """
+    Backward-compatible wrapper used by pipeline modules.
+    """
+    if product_names is None:
+        product_names = [
+            "Lady Dior Bag",
+            "Saddle Bag",
+            "Book Tote",
+            "Dior Caro Bag",
+            "Dior Bobby Bag",
+        ]
+
+    if max_items is not None and max_items > 0:
+        product_names = product_names[:max_items]
+
+    seed_df = pd.DataFrame({"product_name": product_names})
+    scraper = VestiaireScraper(headless=headless)
+    return await scraper.scrape_all_from_df(seed_df, max_concurrent=max_concurrent)
+
 if __name__ == "__main__":
     # Quick test run
     scraper = VestiaireScraper(headless=True)
