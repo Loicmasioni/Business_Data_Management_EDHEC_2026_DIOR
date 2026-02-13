@@ -155,6 +155,7 @@ async def get_dior_data(limit: int = 50, dataset: str = None, table: str = None)
                 scrape_date,
                 product_url
             FROM `{full_table}`
+            WHERE Source = 'Dior'
             ORDER BY scrape_date DESC
             LIMIT {limit}
         """
@@ -196,27 +197,71 @@ async def get_analytics_summary(dataset: str = None, table: str = None):
         raise HTTPException(status_code=500, detail=f"Failed to fetch analytics summary: {e}")
 
 @app.get("/analytics/investment-hotspots")
-async def get_investment_hotspots(limit: int = 10, dataset: str = None, table: str = None):
+async def get_investment_hotspots(
+    limit: int = 10,
+    min_rvr: float = 0.90,
+    dataset: str = None,
+    table: str = None,
+):
     try:
         bq = BigQueryClient()
         full_table = get_full_table_path(resolve_project_id(bq), dataset=dataset, table=table)
         price_eur_expr = normalized_price_eur_sql()
         query = f"""
+            WITH normalized AS (
+                SELECT
+                    product_name,
+                    category,
+                    Source,
+                    scrape_date,
+                    {price_eur_expr} AS price_eur
+                FROM `{full_table}`
+                WHERE {price_eur_expr} IS NOT NULL
+            ),
+            dior_baseline AS (
+                SELECT
+                    category,
+                    AVG(price_eur) AS avg_dior_retail_eur
+                FROM normalized
+                WHERE Source = 'Dior'
+                GROUP BY category
+                HAVING avg_dior_retail_eur IS NOT NULL
+            ),
+            resale_ranked AS (
+                SELECT
+                    n.product_name,
+                    n.category,
+                    n.Source,
+                    n.scrape_date,
+                    n.price_eur AS resale_price_eur,
+                    b.avg_dior_retail_eur,
+                    n.price_eur / NULLIF(b.avg_dior_retail_eur, 0) AS rvr_ratio
+                FROM normalized n
+                JOIN dior_baseline b USING (category)
+                WHERE n.Source != 'Dior'
+            )
             SELECT
                 product_name,
                 category,
-                {price_eur_expr} as resale_price_eur,
-                IFNULL(FORMAT('€%.2f', {price_eur_expr}), NULL) as resale_price_eur_formatted,
                 Source,
-                scrape_date
-            FROM `{full_table}`
-            WHERE Source != 'Dior'
-              AND {price_eur_expr} IS NOT NULL
-            ORDER BY resale_price_eur DESC, scrape_date DESC
+                scrape_date,
+                resale_price_eur,
+                IFNULL(FORMAT('€%.2f', resale_price_eur), NULL) AS resale_price_eur_formatted,
+                avg_dior_retail_eur,
+                IFNULL(FORMAT('€%.2f', avg_dior_retail_eur), NULL) AS avg_dior_retail_eur_formatted,
+                ROUND(rvr_ratio * 100, 2) AS rvr_pct,
+                CASE
+                    WHEN rvr_ratio >= 1.0 THEN 'Investment-like'
+                    WHEN rvr_ratio >= 0.9 THEN 'Value-retaining'
+                    ELSE 'Depreciating'
+                END AS value_class
+            FROM resale_ranked
+            WHERE rvr_ratio >= {min_rvr}
+            ORDER BY rvr_ratio DESC, scrape_date DESC
             LIMIT {limit}
         """
         df = bq.query_to_dataframe(query)
-        return dataframe_or_404(df, "No investment hotspot data found in dior_data_final")
+        return dataframe_or_404(df, f"No investment hotspots found with min_rvr >= {min_rvr}")
     except HTTPException:
         raise
     except Exception as e:
